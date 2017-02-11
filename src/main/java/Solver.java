@@ -30,8 +30,8 @@ public class Solver {
                 boardPQ.insert(boardWrapper);
             }
             currentBoard = boardPQ.delMin().getBoard();
-            if (currenB) {
-                
+            if (currentBoard.isGoal()) {
+                System.out.println("fuckYeahhh");
             }
         }
         
