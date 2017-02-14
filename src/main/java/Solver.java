@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -23,24 +24,41 @@ public class Solver {
     
     public Solver(Board initialBoardP) {
         MinPQ<BoardWrapper> boardPQ = new MinPQ<>(new BoardWrapperComparatorHamming());
-        Board currentBoard = initialBoardP;
+        BoardWrapper currentBoardWrapper = new BoardWrapper(initialBoardP, initialBoardP);
         while (true) {
-            for (Board board : currentBoard.neighbors()) {
-                BoardWrapper boardWrapper = new BoardWrapper(board, initialBoardP);
+            List<Board> validNeighborBoards = getValidNeighbors(currentBoardWrapper);
+            for (Board board : validNeighborBoards) {
+                BoardWrapper boardWrapper = new BoardWrapper(board, currentBoardWrapper.getBoard());
                 boardPQ.insert(boardWrapper);
             }
-            currentBoard = boardPQ.delMin().getBoard();
-            if (currentBoard.isGoal()) {
+            currentBoardWrapper = boardPQ.delMin();
+            if (currentBoardWrapper.getBoard().isGoal()) {
                 System.out.println("fuckYeahhh");
             }
         }
-        
+    }
+    
+    private List<Board> getValidNeighbors(BoardWrapper currentBoardWrapper) {
+        Board parentBoard = currentBoardWrapper.getParentBoard();
+        List<Board> validNeighborBoards = new ArrayList<>();
+        for (Board board : currentBoardWrapper.getBoard().neighbors()) {
+            if (!parentBoard.equals(board)) {
+                validNeighborBoards.add(board);
+            }
+        }
+        return validNeighborBoards;
     }
     
     private class BoardWrapper {
         Board board;
         Board parentBoard;
         
+        public Board getParentBoard() {
+            return parentBoard;
+        }
+        public void setParentBoard(Board parentBoard) {
+            this.parentBoard = parentBoard;
+        }
         public Board getBoard() {
             return board;
         }
@@ -54,6 +72,11 @@ public class Solver {
         }
         public int manhattan() {
             return board.manhattan();
+        }
+        
+        @Override
+        public String toString() {
+            return board.toString();
         }
 
     }
