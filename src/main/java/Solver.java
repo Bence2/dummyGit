@@ -18,17 +18,22 @@ public class Solver {
         }
         blocksP[demoLength-1][demoLength-1] = 1;
         blocksP[0][0] = 0;
+//        int tmpValue = blocksP[demoLength-1][demoLength-1];
+//        blocksP[demoLength-1][demoLength-1] = blocksP[demoLength-1][demoLength-1]
         Solver solver = new Solver(new Board(blocksP));
 
     }
     
     public Solver(Board initialBoardP) {
+        initialBoardP = initialBoardP.twin();
         MinPQ<BoardWrapper> boardPQ = new MinPQ<>(new BoardWrapperComparatorHamming());
         BoardWrapper currentBoardWrapper = new BoardWrapper(initialBoardP, initialBoardP);
+        currentBoardWrapper.setNumberOfMoves(0);
         while (true) {
             List<Board> validNeighborBoards = getValidNeighbors(currentBoardWrapper);
             for (Board board : validNeighborBoards) {
                 BoardWrapper boardWrapper = new BoardWrapper(board, currentBoardWrapper.getBoard());
+                boardWrapper.setNumberOfMoves();
                 boardPQ.insert(boardWrapper);
             }
             currentBoardWrapper = boardPQ.delMin();
@@ -52,7 +57,14 @@ public class Solver {
     private class BoardWrapper {
         Board board;
         Board parentBoard;
+        int numberOfMoves;
         
+        public int getNumberOfMoves() {
+            return numberOfMoves;
+        }
+        public void setNumberOfMoves(int numberOfMoves) {
+            this.numberOfMoves = numberOfMoves;
+        }
         public Board getParentBoard() {
             return parentBoard;
         }
