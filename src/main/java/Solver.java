@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import edu.princeton.cs.algs4.MinPQ;
@@ -27,13 +28,13 @@ public class Solver {
     public Solver(Board initialBoardP) {
         initialBoardP = initialBoardP.twin();
         MinPQ<BoardWrapper> boardPQ = new MinPQ<>(new BoardWrapperComparatorHamming());
-        BoardWrapper currentBoardWrapper = new BoardWrapper(initialBoardP, initialBoardP);
+        BoardWrapper currentBoardWrapper = new BoardWrapper(initialBoardP, null);
         currentBoardWrapper.setNumberOfMoves(0);
         while (true) {
             List<Board> validNeighborBoards = getValidNeighbors(currentBoardWrapper);
             for (Board board : validNeighborBoards) {
-                BoardWrapper boardWrapper = new BoardWrapper(board, currentBoardWrapper.getBoard());
-                boardWrapper.setNumberOfMoves();
+                BoardWrapper boardWrapper = new BoardWrapper(board, currentBoardWrapper);
+                boardWrapper.setNumberOfMoves(currentBoardWrapper.getNumberOfMoves() + 1);
                 boardPQ.insert(boardWrapper);
             }
             currentBoardWrapper = boardPQ.delMin();
@@ -44,39 +45,48 @@ public class Solver {
     }
     
     private List<Board> getValidNeighbors(BoardWrapper currentBoardWrapper) {
-        Board parentBoard = currentBoardWrapper.getParentBoard();
         List<Board> validNeighborBoards = new ArrayList<>();
-        for (Board board : currentBoardWrapper.getBoard().neighbors()) {
-            if (!parentBoard.equals(board)) {
+        if (currentBoardWrapper.getParentBoard() == null) {
+            for (Board board : currentBoardWrapper.getBoard().neighbors()) {
                 validNeighborBoards.add(board);
             }
         }
+        else {
+            Board parentBoard = currentBoardWrapper.getParentBoard().getBoard();
+            validNeighborBoards = new ArrayList<>();
+            for (Board board : currentBoardWrapper.getBoard().neighbors()) {
+                if (!parentBoard.equals(board)) {
+                    validNeighborBoards.add(board);
+                }
+            }
+        }
         return validNeighborBoards;
+        
     }
     
     private class BoardWrapper {
         Board board;
-        Board parentBoard;
+        BoardWrapper parentBoard;
         int numberOfMoves;
         
+        public BoardWrapper(Board boardP, BoardWrapper parentBoardP) {
+            this.board = boardP;
+            this.parentBoard = parentBoardP;
+        }
         public int getNumberOfMoves() {
             return numberOfMoves;
         }
         public void setNumberOfMoves(int numberOfMoves) {
             this.numberOfMoves = numberOfMoves;
         }
-        public Board getParentBoard() {
+        public BoardWrapper getParentBoard() {
             return parentBoard;
         }
-        public void setParentBoard(Board parentBoard) {
+        public void setParentBoard(BoardWrapper parentBoard) {
             this.parentBoard = parentBoard;
         }
         public Board getBoard() {
             return board;
-        }
-        public BoardWrapper(Board boardP, Board parentBoardP) {
-            this.board = boardP;
-            this.parentBoard = parentBoardP;
         }
         
         public int hamming() {
@@ -97,7 +107,7 @@ public class Solver {
 
         @Override
         public int compare(BoardWrapper bw1, BoardWrapper bw2) {
-            return bw1.hamming() - bw2.hamming();
+            return (bw1.hamming() + bw1.getNumberOfMoves()) - (bw2.hamming() + bw2.getNumberOfMoves());
         }
     }
     
@@ -105,7 +115,7 @@ public class Solver {
         
         @Override
         public int compare(BoardWrapper bw1, BoardWrapper bw2) {
-            return bw1.manhattan() - bw2.manhattan();
+            return (bw1.manhattan() + bw1.getNumberOfMoves()) - (bw2.manhattan() + bw2.getNumberOfMoves());
         }
     }
 }
