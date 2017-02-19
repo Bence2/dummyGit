@@ -26,22 +26,42 @@ public class Solver {
     }
     
     public Solver(Board initialBoardP) {
-        initialBoardP = initialBoardP.twin();
-        MinPQ<BoardWrapper> boardPQ = new MinPQ<>(new BoardWrapperComparatorHamming());
-        BoardWrapper currentBoardWrapper = new BoardWrapper(initialBoardP, null);
-        currentBoardWrapper.setNumberOfMoves(0);
-        while (true) {
-            List<Board> validNeighborBoards = getValidNeighbors(currentBoardWrapper);
-            for (Board board : validNeighborBoards) {
-                BoardWrapper boardWrapper = new BoardWrapper(board, currentBoardWrapper);
-                boardWrapper.setNumberOfMoves(currentBoardWrapper.getNumberOfMoves() + 1);
-                boardPQ.insert(boardWrapper);
-            }
-            currentBoardWrapper = boardPQ.delMin();
-            if (currentBoardWrapper.getBoard().isGoal()) {
-                System.out.println("fuckYeahhh");
-            }
+        getSolution(initialBoardP);
+        
+    }
+    
+    private void getSolution(Board initialBoardP) {
+        MinPQ<BoardWrapper> boardOriginalPQ = new MinPQ<>(new BoardWrapperComparatorHamming());
+        BoardWrapper initialOriginalBoardWrapper = new BoardWrapper(initialBoardP, null);
+        initialOriginalBoardWrapper.setNumberOfMoves(0);
+        
+        MinPQ<BoardWrapper> boardTwinPQ = new MinPQ<>(new BoardWrapperComparatorHamming());
+        Board initialTwinBoard = initialBoardP.twin();
+        BoardWrapper initialTwinBoardWrapper = new BoardWrapper(initialTwinBoard, null);
+        initialTwinBoardWrapper.setNumberOfMoves(0);
+        
+        boolean isOriginalBoardSolved = false;
+        boolean isTwinBoardSolved = false;
+        while (!isOriginalBoardSolved && !isTwinBoardSolved) {
+            
+            initialOriginalBoardWrapper =  getSolutionStep(initialOriginalBoardWrapper, boardOriginalPQ);
+            isOriginalBoardSolved = initialOriginalBoardWrapper.getBoard().isGoal();
+            
+            initialTwinBoardWrapper = getSolutionStep(initialTwinBoardWrapper, boardTwinPQ);
+            isTwinBoardSolved = initialTwinBoardWrapper.getBoard().isGoal();
         }
+        System.out.println("sikeer");
+    }
+    
+    private BoardWrapper getSolutionStep(BoardWrapper currentBoardWrapper, MinPQ<BoardWrapper> boardPQ) {
+        List<Board> validNeighborBoards = getValidNeighbors(currentBoardWrapper);
+        for (Board board : validNeighborBoards) {
+            BoardWrapper boardWrapper = new BoardWrapper(board, currentBoardWrapper);
+            boardWrapper.setNumberOfMoves(currentBoardWrapper.getNumberOfMoves() + 1);
+            boardPQ.insert(boardWrapper);
+        }
+        currentBoardWrapper = boardPQ.delMin();
+        return currentBoardWrapper;
     }
     
     private List<Board> getValidNeighbors(BoardWrapper currentBoardWrapper) {
