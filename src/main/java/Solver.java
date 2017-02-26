@@ -65,12 +65,14 @@ public class Solver {
     }
     
     private Stack<Board> fillSolutionSteps(BoardWrapper finalBoardWrapper) {
-        if (finalBoardWrapper.getBoard().isGoal()) {
+        BoardWrapper tmpBoardWrapper = finalBoardWrapper;
+        if (tmpBoardWrapper.getBoard().isGoal()) {
             solutionSteps = new Stack<>();
-            solutionSteps.push(finalBoardWrapper.getBoard());
+            solutionSteps.push(tmpBoardWrapper.getBoard());
             
-            while (finalBoardWrapper.getParentBoard() != null) {
-                solutionSteps.push(finalBoardWrapper.getParentBoard().getBoard());
+            while (tmpBoardWrapper.getParentBoard() != null) {
+                solutionSteps.push(tmpBoardWrapper.getParentBoard().getBoard());
+                tmpBoardWrapper = tmpBoardWrapper.getParentBoard();
             }
             return solutionSteps;
         }
