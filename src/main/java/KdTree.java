@@ -21,18 +21,50 @@ public class KdTree {
         System.out.println("vege");
     }
     
+    public Iterable<Point2D> range(RectHV rectangle) {
+        // first take the x coordinates into account, whether the given point in the tree
+        // is between the points
+        // then at the next level the y coordinates then x then y so on..
+        if (rootNode == null) {
+            return null;
+        }
+        else {
+            Node currentNode = rootNode;
+            int treeDepthCounter = 0;
+            while (true) {
+                treeDepthCounter++;
+                if (treeDepthCounter % 2 == 0) {
+                    if (rectangle.xmin() <= currentNode.getPoint().x() && currentNode.getPoint().x() <= rectangle.xmax()) {
+                        
+                    }
+                    
+                }
+                else {
+                    currentNode.getPoint().y();
+                    
+                }
+            }
+        }
+        
+    }
+    
     public void insert(Point2D point) {
         // if such point exists update, otherwise insert a new node
         checkInputData(point);
         if (rootNode == null) {
             rootNode = new Node(point);
+            RectHV rectangle = new RectHV(0, 0, 1, 1);
             return;
         }
+        
+        // creating rectangle: take into consideration the 2 or 4 parent node?
+        // keep information about the rectangle youre in
         Node currentNode = rootNode;
         Point2D currentPoint = rootNode.getPoint();
         int treeDepthCounter = 0;
         Comparator<Point2D> comparator;
         while (true) {
+            // it might not needs to be updated
             if (point.equals(currentPoint)) {
                 currentNode.setPoint(point);
                 break;
