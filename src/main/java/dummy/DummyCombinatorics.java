@@ -16,7 +16,6 @@ public class DummyCombinatorics {
 		elements.add("C");
 		elements.add("D");
 		// makeNSizeCombinations(3, elements);
-		BruteCollinearPoints
 
 	}
 	

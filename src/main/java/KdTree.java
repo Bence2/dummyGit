@@ -12,10 +12,14 @@ public class KdTree {
         Point2D point1 = new Point2D(0.2, 0.5);
         Point2D point2 = new Point2D(0.1, 0.5);
         Point2D point3 = new Point2D(0.1, 0.7);
+		Point2D point4 = new Point2D(0.3, 0.7);
+		Point2D point5 = new Point2D(0.4, 0.6);
         Point2D pointNemLetezo = new Point2D(0.1, 0.1);
         kdtree.insert(point1);
         kdtree.insert(point2);
         kdtree.insert(point3);
+		kdtree.insert(point4);
+		kdtree.insert(point5);
         System.out.println(kdtree.contains(point3));
         System.out.println(kdtree.contains(pointNemLetezo));
         System.out.println("vege");
@@ -54,6 +58,7 @@ public class KdTree {
         if (rootNode == null) {
             rootNode = new Node(point);
             RectHV rectangle = new RectHV(0, 0, 1, 1);
+			rootNode.setRectangle(rectangle);
             return;
         }
         
@@ -77,13 +82,25 @@ public class KdTree {
             }
             
             int comparisonResult = comparator.compare(point, currentPoint);
+			RectHV previousRectangle = currentNode.getRectangle();
             if (comparisonResult == -1) {
                 if (currentNode.getLeftNode() != null) {
                     currentNode = currentNode.getLeftNode();
                     currentPoint = currentNode.getPoint();
                 }
                 else {
-                    currentNode.setLeftNode(new Node(point));
+					Node newNode = new Node(point);
+					RectHV rectangle;
+					if (comparator.getClass() == point.X_ORDER.getClass())
+					{
+						rectangle = new RectHV(previousRectangle.xmin(), previousRectangle.ymin(), currentPoint.x(), previousRectangle.ymax());
+					}
+					else
+					{
+						rectangle = new RectHV(previousRectangle.xmin(), previousRectangle.ymin(), previousRectangle.xmax(), currentPoint.y());
+					}
+					newNode.setRectangle(rectangle);
+					currentNode.setLeftNode(newNode);
                     break;
                 }
             }
@@ -93,7 +110,18 @@ public class KdTree {
                     currentPoint = currentNode.getPoint();
                 }
                 else {
-                    currentNode.setRightNode(new Node(point));
+					Node newNode = new Node(point);
+					RectHV rectangle;
+					if (comparator.getClass() == point.X_ORDER.getClass())
+					{
+						rectangle = new RectHV(currentPoint.x(), previousRectangle.ymin(), previousRectangle.xmax(), previousRectangle.ymax());
+					}
+					else
+					{
+						rectangle = new RectHV(previousRectangle.xmin(), currentPoint.y(), previousRectangle.xmax(), previousRectangle.ymax());
+					}
+					newNode.setRectangle(rectangle);
+					currentNode.setRightNode(newNode);
                     break;
                 }
             }
