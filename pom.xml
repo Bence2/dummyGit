@@ -15,6 +15,7 @@
 					<target>1.7</target>
 				</configuration>
 			</plugin>
+			
 			<!-- ez a resz nem vagom, h mire jo -->
 			<!-- <plugin> -->
 			<!-- <groupId>org.apache.maven.plugins</groupId> -->
@@ -25,4 +26,13 @@
 			<!-- </plugin> -->
 		</plugins>
 	</build>
+	<dependencies>
+		<dependency>
+		    <groupId>kiscica</groupId>
+		    <artifactId>miau</artifactId>
+		    <version>0.0.1</version>
+		    <scope>system</scope>
+		    <systemPath>${project.basedir}/libr/algs4.jar</systemPath>
+		</dependency>
+	</dependencies>
 </project>
