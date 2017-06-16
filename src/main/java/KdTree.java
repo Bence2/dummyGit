@@ -1,4 +1,8 @@
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
@@ -22,6 +26,8 @@ public class KdTree {
 		kdtree.insert(point5);
         System.out.println(kdtree.contains(point3));
         System.out.println(kdtree.contains(pointNemLetezo));
+
+		Iterable<Point2D> foundPoints = kdtree.range(new RectHV(0.8, 0.8, 0.9, 0.9));
         System.out.println("vege");
     }
     
@@ -29,27 +35,29 @@ public class KdTree {
         // first take the x coordinates into account, whether the given point in the tree
         // is between the points
         // then at the next level the y coordinates then x then y so on..
+		Queue<Node> nodesQueue = new LinkedList<>();
+		nodesQueue.add(rootNode);
+		List<Point2D> pointsWithinRectangle = new ArrayList<>();
         if (rootNode == null) {
             return null;
         }
         else {
-            Node currentNode = rootNode;
-            int treeDepthCounter = 0;
-            while (true) {
-                treeDepthCounter++;
-                if (treeDepthCounter % 2 == 0) {
-                    if (rectangle.xmin() <= currentNode.getPoint().x() && currentNode.getPoint().x() <= rectangle.xmax()) {
-                        
-                    }
-                    
-                }
-                else {
-                    currentNode.getPoint().y();
-                    
-                }
-            }
+			while (nodesQueue.size() != 0)
+			{
+				Node currentNode = nodesQueue.poll();
+				if (currentNode != null && currentNode.getRectangle().intersects(rectangle))
+				{
+					if (rectangle.contains(currentNode.getPoint()))
+					{
+						pointsWithinRectangle.add(currentNode.getPoint());
+					}
+
+					nodesQueue.add(currentNode.leftNode);
+					nodesQueue.add(currentNode.rightNode);
+				}
+			}
         }
-        
+		return pointsWithinRectangle;
     }
     
     public void insert(Point2D point) {
