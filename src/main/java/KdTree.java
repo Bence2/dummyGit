@@ -3,6 +3,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Stack;
 
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
@@ -12,23 +13,67 @@ public class KdTree {
     private Node rootNode;
     
     public static void main(String[] args) {
+        testWithGivenDemoData();
+        testWithOwnDemoData();
+        
+    }
+    
+    private static void testWithOwnDemoData() {
         KdTree kdtree = new KdTree();
         Point2D point1 = new Point2D(0.2, 0.5);
         Point2D point2 = new Point2D(0.1, 0.5);
         Point2D point3 = new Point2D(0.1, 0.7);
-		Point2D point4 = new Point2D(0.3, 0.7);
-		Point2D point5 = new Point2D(0.4, 0.6);
+        Point2D point4 = new Point2D(0.3, 0.7);
+        Point2D point5 = new Point2D(0.4, 0.6);
         Point2D pointNemLetezo = new Point2D(0.1, 0.1);
         kdtree.insert(point1);
         kdtree.insert(point2);
         kdtree.insert(point3);
-		kdtree.insert(point4);
-		kdtree.insert(point5);
-        System.out.println(kdtree.contains(point3));
-        System.out.println(kdtree.contains(pointNemLetezo));
+        kdtree.insert(point4);
+        kdtree.insert(point5);
+        assert(kdtree.contains(point3));
+        assert(!kdtree.contains(pointNemLetezo));
 
-		Iterable<Point2D> foundPoints = kdtree.range(new RectHV(0.8, 0.8, 0.9, 0.9));
+        Iterable<Point2D> foundPoints = kdtree.range(new RectHV(0.8, 0.8, 0.9, 0.9));
         System.out.println("vege");
+    }
+    
+    private static void testWithGivenDemoData() {
+        KdTree kdtree = new KdTree();
+        Point2D point1 = new Point2D(0.7,  0.2);
+        kdtree.insert(point1);
+        Point2D point2 = new Point2D(0.5,  0.4);
+        kdtree.insert(point2);
+        Point2D point3 = new Point2D(0.2,  0.3);
+        kdtree.insert(point3);
+        Point2D point4 = new Point2D(0.4,  0.7);
+        kdtree.insert(point4);
+        Point2D point5 = new Point2D(0.9,  0.6);
+        kdtree.insert(point5);
+        assert(kdtree.rootNode.getRectangle().xmin() == new Double(0));
+        assert(kdtree.rootNode.getRectangle().ymax() == new Double(1));
+        assert(kdtree.rootNode.getLeftNode().getRectangle().xmax() == new Double(0.7));
+        assert(kdtree.rootNode.getLeftNode().getRectangle().xmin() == new Double(0.0));
+        assert(kdtree.rootNode.getRightNode().getRectangle().xmax() == new Double(1));
+        assert(kdtree.rootNode.getRightNode().getRectangle().xmin() == new Double(0.7));
+        assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().ymax() == new Double(0.4));
+        assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().ymin() == new Double(0.0));
+        assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().xmax() == new Double(0.7));
+        assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().xmin() == new Double(0.0));
+        System.out.println("vege");
+    }
+    
+    public void draw() {
+        // depth first search-csel proba
+        Stack<Node> nodeStack = new Stack<>();
+        nodeStack.push(rootNode);
+        while (nodeStack.size() != 0) {
+            Node currentNode = nodeStack.pop();
+            Node rightNode = currentNode.getRightNode();
+            nodeStack.push(rightNode);
+            Node leftNode = currentNode.getLeftNode();
+            nodeStack.push(leftNode);
+        }
     }
     
     public Iterable<Point2D> range(RectHV rectangle) {
