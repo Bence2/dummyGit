@@ -3,16 +3,17 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.Stack;
 
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.StdDraw;
 
 public class KdTree {
 
     private Node rootNode;
     
     public static void main(String[] args) {
+        testNearestPoint();
         testWithGivenDemoData();
         testWithOwnDemoData();
         
@@ -60,20 +61,136 @@ public class KdTree {
         assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().ymin() == new Double(0.0));
         assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().xmax() == new Double(0.7));
         assert(kdtree.rootNode.getLeftNode().getLeftNode().getRectangle().xmin() == new Double(0.0));
+        // kdtree.draw();
         System.out.println("vege");
     }
     
-    public void draw() {
-        // depth first search-csel proba
-        Stack<Node> nodeStack = new Stack<>();
-        nodeStack.push(rootNode);
-        while (nodeStack.size() != 0) {
-            Node currentNode = nodeStack.pop();
-            Node rightNode = currentNode.getRightNode();
-            nodeStack.push(rightNode);
+    private static void testNearestPoint() {
+        KdTree kdtree = new KdTree();
+        Point2D point1 = new Point2D(0.3,  0.9);
+        kdtree.insert(point1);
+        Point2D point2 = new Point2D(0.2,  0.8);
+        kdtree.insert(point2);
+        Point2D point3 = new Point2D(0.5,  0.5);
+        kdtree.insert(point3);
+        Point2D queryPoint = new Point2D(0.9, 0.1);
+        kdtree.draw();
+        Point2D closestPoint = kdtree.nearest(queryPoint);
+        System.out.println(closestPoint);
+    }
+    
+    public Point2D nearest(Point2D queryPoint) {
+        if (rootNode == null) return null;
+        
+//        Point2D closestPoint = rootNode.getPoint();
+        Point2D closestPoint = null;
+//        double closestDistance = closestPoint.distanceSquaredTo(queryPoint);
+        double closestDistance = Double.MAX_VALUE;
+        
+        Queue<Node> nodeQueue = new LinkedList<>();
+        nodeQueue.add(rootNode);
+        
+        while (nodeQueue.size() != 0) {
+            Node currentNode = nodeQueue.poll();
+            double currentDistance = currentNode.getPoint().distanceSquaredTo(queryPoint);
+            if (currentDistance < closestDistance) {
+                closestPoint = currentNode.getPoint();
+                closestDistance = currentDistance;
+            }
             Node leftNode = currentNode.getLeftNode();
-            nodeStack.push(leftNode);
+            Node rightNode = currentNode.getRightNode();
+            if (leftNode != null && leftNode.getRectangle().contains(queryPoint)) {
+                exploreNode(leftNode, queryPoint, closestDistance, nodeQueue);
+                exploreNode(rightNode, queryPoint, closestDistance, nodeQueue);
+            } else {
+                exploreNode(rightNode, queryPoint, closestDistance, nodeQueue);
+                exploreNode(leftNode, queryPoint, closestDistance, nodeQueue);
+            }
         }
+        return closestPoint;
+    }
+    
+    public void exploreNode(Node node, Point2D queryPoint, double closestDistance, Queue<Node> nodeQueue) {
+        if (node == null) return;
+        double nodesRectangleDistance = node.getRectangle().distanceSquaredTo(queryPoint);
+        if (nodesRectangleDistance < closestDistance) {
+            nodeQueue.add(node);
+        }
+    }
+    
+    public void draw() {
+        Queue<Node> nodeQueue = new LinkedList<>();
+        if (rootNode == null) {
+            return;
+        }
+        nodeQueue.add(rootNode);
+        Queue<Node> newNodeQueue = new LinkedList<>();
+        int treeDepthCounter = 0;
+        while (nodeQueue.size() != 0) {
+            Node currentNode = nodeQueue.poll();
+            drawHelper(currentNode, treeDepthCounter);
+            Node rightNode = currentNode.getRightNode();
+            if (rightNode != null) newNodeQueue.add(rightNode);
+            Node leftNode = currentNode.getLeftNode();
+            if (leftNode != null) newNodeQueue.add(leftNode);
+            if (nodeQueue.size() == 0) {
+                nodeQueue = newNodeQueue;
+                newNodeQueue = new LinkedList<>();
+                ++treeDepthCounter;
+            }
+        }
+    }
+    
+    private void drawHelper(Node currentNode, int treeDepthCounter) {
+        Point2D point = currentNode.getPoint();
+        drawPoint(currentNode);
+        
+        double lowerBoundary;
+        double upperBoundary;
+        double x0;
+        double y0;
+        double x1;
+        double y1;
+        
+        int parity;
+        if (treeDepthCounter % 2 == 0) {
+            parity = 0;
+            // to every node belongs a rectangle
+            // the line has to be drawn within the boundaries of that rectangle
+            // in case the first level of the tree, that boundary is the ymin ymax coordinates
+            lowerBoundary = currentNode.getRectangle().ymin();
+            upperBoundary = currentNode.getRectangle().ymax();
+            x0 = point.x();
+            x1 = point.x();
+            y0 = lowerBoundary;
+            y1 = upperBoundary;
+            
+        } else {
+            parity = 1;
+            lowerBoundary = currentNode.getRectangle().xmin();
+            upperBoundary = currentNode.getRectangle().xmax();
+            x0 = lowerBoundary;
+            x1 = upperBoundary;
+            y0 = point.y();
+            y1 = point.y();
+            
+        }
+        drawSplittingLines(parity, x0, y0, x1, y1);
+    }
+    
+    private void drawPoint(Node currentNode) {
+        StdDraw.setPenColor(StdDraw.BLACK);
+        StdDraw.setPenRadius(0.01);
+        StdDraw.point(currentNode.getPoint().x(), currentNode.getPoint().y());
+    }
+    
+    private void drawSplittingLines(int parity, double x0, double y0, double x1, double y1) {
+        if (parity == 0) {
+            StdDraw.setPenColor(StdDraw.RED);
+        } else {
+            StdDraw.setPenColor(StdDraw.BLUE);
+        }
+        StdDraw.line(x0, y0, x1, y1);
     }
     
     public Iterable<Point2D> range(RectHV rectangle) {
