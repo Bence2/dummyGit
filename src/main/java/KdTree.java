@@ -11,6 +11,11 @@ import edu.princeton.cs.algs4.StdDraw;
 public class KdTree {
 
     private Node rootNode;
+    private int size;
+    
+    public KdTree() {
+        this.size = 0;
+    }
     
     public static void main(String[] args) {
         testNearestPoint();
@@ -26,13 +31,19 @@ public class KdTree {
         Point2D point3 = new Point2D(0.1, 0.7);
         Point2D point4 = new Point2D(0.3, 0.7);
         Point2D point5 = new Point2D(0.4, 0.6);
+        Point2D point6 = new Point2D(0.8, 0.6);
+        Point2D point7 = new Point2D(0.5, 0.6);
         Point2D pointNemLetezo = new Point2D(0.1, 0.1);
         kdtree.insert(point1);
         kdtree.insert(point2);
         kdtree.insert(point3);
         kdtree.insert(point4);
         kdtree.insert(point5);
-        assert(kdtree.contains(point3));
+        kdtree.insert(point6);
+        kdtree.insert(point7);
+        kdtree.insert(point5);
+        kdtree.draw();
+        assert(kdtree.contains(point7));
         assert(!kdtree.contains(pointNemLetezo));
 
         Iterable<Point2D> foundPoints = kdtree.range(new RectHV(0.8, 0.8, 0.9, 0.9));
@@ -74,12 +85,13 @@ public class KdTree {
         Point2D point3 = new Point2D(0.5,  0.5);
         kdtree.insert(point3);
         Point2D queryPoint = new Point2D(0.9, 0.1);
-        kdtree.draw();
+//        kdtree.draw();
         Point2D closestPoint = kdtree.nearest(queryPoint);
         System.out.println(closestPoint);
     }
     
     public Point2D nearest(Point2D queryPoint) {
+        checkInputData(queryPoint);
         if (rootNode == null) return null;
         
 //        Point2D closestPoint = rootNode.getPoint();
@@ -110,7 +122,7 @@ public class KdTree {
         return closestPoint;
     }
     
-    public void exploreNode(Node node, Point2D queryPoint, double closestDistance, Queue<Node> nodeQueue) {
+    private void exploreNode(Node node, Point2D queryPoint, double closestDistance, Queue<Node> nodeQueue) {
         if (node == null) return;
         double nodesRectangleDistance = node.getRectangle().distanceSquaredTo(queryPoint);
         if (nodesRectangleDistance < closestDistance) {
@@ -194,6 +206,7 @@ public class KdTree {
     }
     
     public Iterable<Point2D> range(RectHV rectangle) {
+        checkInputData(rectangle);
         // first take the x coordinates into account, whether the given point in the tree
         // is between the points
         // then at the next level the y coordinates then x then y so on..
@@ -222,6 +235,14 @@ public class KdTree {
 		return pointsWithinRectangle;
     }
     
+    public boolean isEmpty() {
+        return size == 0;
+    }
+    
+    public int size() {
+        return size;
+    }
+    
     public void insert(Point2D point) {
         // if such point exists update, otherwise insert a new node
         checkInputData(point);
@@ -229,6 +250,7 @@ public class KdTree {
             rootNode = new Node(point);
             RectHV rectangle = new RectHV(0, 0, 1, 1);
 			rootNode.setRectangle(rectangle);
+			this.size = 1;
             return;
         }
         
@@ -241,8 +263,8 @@ public class KdTree {
         while (true) {
             // it might not needs to be updated
             if (point.equals(currentPoint)) {
-                currentNode.setPoint(point);
-                break;
+                // currentNode.setPoint(point);
+                return;
             }
             if ((treeDepthCounter++ % 2) == 0) {
                 comparator = point.X_ORDER;
@@ -296,7 +318,7 @@ public class KdTree {
                 }
             }
         }
-        
+        ++size;
     }
     
     public boolean contains(Point2D point) {
@@ -322,6 +344,7 @@ public class KdTree {
             else if (comparisonResult == 0 || comparisonResult == 1) {
                 currentNode = currentNode.getRightNode();
             }
+            ++treeDepthCounter;
         }
         return false;
     }
