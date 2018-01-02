@@ -1,19 +1,22 @@
 import edu.princeton.cs.algs4.BreadthFirstDirectedPaths;
+import edu.princeton.cs.algs4.DepthFirstDirectedPaths;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Stack;
 import java.util.TreeSet;
 
 public class SAP {
 
     private Digraph digraph;
-    Map<TwoVertex, VertexWithDistance> ancestorCache = new HashMap();
+    private Map<TwoVertex, VertexWithDistance> ancestorCache = new HashMap();
 
     public static void main(String args[]) {
         Digraph digraph = new Digraph(new In("/digraph1.txt"));
@@ -53,11 +56,59 @@ public class SAP {
         length = singleAncestorPath.length(Arrays.asList(7,4), Arrays.asList(5, 12));
         assert(length == 2);
 
+        digraph = new Digraph(new In("/digraph2.txt"));
+        singleAncestorPath = new SAP(digraph);
+        vertex = singleAncestorPath.ancestor(1, 5);
+
         System.out.println("vertex: " + vertex);
     }
 
     public SAP(Digraph digraph) {
-        this.digraph = digraph;
+        this.digraph = new Digraph(digraph);
+        checkForRootedDag(digraph);
+    }
+
+    public void checkForRootedDag(Digraph digraph) {
+        if (digraph.V() == 0) {
+            return;
+        }
+        Iterator[] neighborVerticesIterator = new Iterator[digraph.V()];
+        for (int i = 0; i < digraph.V(); i++) {
+            neighborVerticesIterator[i] = digraph.adj(i).iterator();
+        }
+
+        boolean[] onStack = new boolean[digraph.V()];
+        boolean[] isVisited = new boolean[digraph.V()];
+        Stack<Integer> stack = new Stack<>();
+
+        for (int i = 0; i < digraph.V(); i++) {
+            if (!isVisited[i]) {
+                stack.push(i);
+                isVisited[i] = true;
+                onStack[i] = true;
+
+                while (!stack.isEmpty()) {
+                    Integer currentVertex = stack.peek();
+                    if (neighborVerticesIterator[currentVertex].hasNext()) {
+                        Integer neighborVertex = (Integer) neighborVerticesIterator[currentVertex].next();
+
+                        if (onStack[neighborVertex]) {
+                            throw new IllegalStateException("Its not a dag");
+                        }
+                        if (!isVisited[neighborVertex]) {
+                            stack.push(neighborVertex);
+                            isVisited[neighborVertex] = true;
+
+                            onStack[neighborVertex] = true;
+                        }
+                    } else {
+                        onStack[currentVertex] = false;
+                        stack.pop();
+                    }
+                }
+            }
+        }
+
     }
 
     public int ancestor(Iterable<Integer> verticesV, Iterable<Integer> verticesW) {
