@@ -1,17 +1,15 @@
 import edu.princeton.cs.algs4.BreadthFirstDirectedPaths;
-import edu.princeton.cs.algs4.DepthFirstDirectedPaths;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.UF;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Stack;
-import java.util.TreeSet;
 
 public class SAP {
 
@@ -60,56 +58,17 @@ public class SAP {
         singleAncestorPath = new SAP(digraph);
         vertex = singleAncestorPath.ancestor(1, 5);
 
+        digraph = new Digraph(new In("/digraph3.txt"));
+        singleAncestorPath = new SAP(digraph);
+        vertex = singleAncestorPath.ancestor(7, 1);
+
         System.out.println("vertex: " + vertex);
     }
 
     public SAP(Digraph digraph) {
         this.digraph = new Digraph(digraph);
-        checkForRootedDag(digraph);
     }
 
-    public void checkForRootedDag(Digraph digraph) {
-        if (digraph.V() == 0) {
-            return;
-        }
-        Iterator[] neighborVerticesIterator = new Iterator[digraph.V()];
-        for (int i = 0; i < digraph.V(); i++) {
-            neighborVerticesIterator[i] = digraph.adj(i).iterator();
-        }
-
-        boolean[] onStack = new boolean[digraph.V()];
-        boolean[] isVisited = new boolean[digraph.V()];
-        Stack<Integer> stack = new Stack<>();
-
-        for (int i = 0; i < digraph.V(); i++) {
-            if (!isVisited[i]) {
-                stack.push(i);
-                isVisited[i] = true;
-                onStack[i] = true;
-
-                while (!stack.isEmpty()) {
-                    Integer currentVertex = stack.peek();
-                    if (neighborVerticesIterator[currentVertex].hasNext()) {
-                        Integer neighborVertex = (Integer) neighborVerticesIterator[currentVertex].next();
-
-                        if (onStack[neighborVertex]) {
-                            throw new IllegalStateException("Its not a dag");
-                        }
-                        if (!isVisited[neighborVertex]) {
-                            stack.push(neighborVertex);
-                            isVisited[neighborVertex] = true;
-
-                            onStack[neighborVertex] = true;
-                        }
-                    } else {
-                        onStack[currentVertex] = false;
-                        stack.pop();
-                    }
-                }
-            }
-        }
-
-    }
 
     public int ancestor(Iterable<Integer> verticesV, Iterable<Integer> verticesW) {
         VertexWithDistance vertexWithDistance = ancestorHelper(verticesV, verticesW);
@@ -159,6 +118,10 @@ public class SAP {
                 }
             }
         }
+        if (currentlyShortestVertexWithDistance.vertex == -1) {
+            currentlyShortestVertexWithDistance.distance = -1;
+//            System.out.println("xxxxxxxx verticesV: " + verticesV.toString() + " verticesW:" + verticesW.toString());
+        }
         return currentlyShortestVertexWithDistance;
     }
 
@@ -188,7 +151,7 @@ public class SAP {
     }
 
     private void argumentChecker(int vertex) {
-        if (!(vertex >= 0 && vertex <= digraph.V())) {
+        if (!(vertex >= 0 && vertex < digraph.V())) {
             throw new IllegalArgumentException("invalid argument");
         }
     }
@@ -197,16 +160,21 @@ public class SAP {
         argumentChecker(v);
         argumentChecker(w);
         Queue<Integer> neighborQueue = new LinkedList<>();
+        boolean[] visited = new boolean[digraph.V()];
         neighborQueue.add(v);
+        visited[v] = true;
         Map<Integer, Integer> visitedVerticesWithLevelMap = new HashMap<>();
 
         int level = 0;
         Queue<Integer> newNeighborQueue = new LinkedList<>();
         while (!neighborQueue.isEmpty()) {
             int currentVertex = neighborQueue.poll();
-            visitedVerticesWithLevelMap.put(currentVertex, level);
+            visitedVerticesWithLevelMap.putIfAbsent(currentVertex, level);
             for (Integer neighborVertex : digraph.adj(currentVertex)) {
-                newNeighborQueue.add(neighborVertex);
+                if (!visited[neighborVertex]) {
+                    visited[neighborVertex] = true;
+                    newNeighborQueue.add(neighborVertex);
+                }
             }
             if (neighborQueue.isEmpty()) {
                 neighborQueue = newNeighborQueue;
@@ -216,18 +184,25 @@ public class SAP {
         }
 
         neighborQueue.add(w);
+        visited = new boolean[digraph.V()];
+        visited[w] = true;
         level = 0;
-        VertexWithDistance commonAncestor = null;
+        VertexWithDistance commonAncestorWithShortestDistance = new VertexWithDistance(Integer.MAX_VALUE, -1);
         while (!neighborQueue.isEmpty()) {
             int currentVertex = neighborQueue.poll();
             Integer currentVertexesPreviousLevel = visitedVerticesWithLevelMap.get(currentVertex);
             if (currentVertexesPreviousLevel != null) {
-                commonAncestor = new VertexWithDistance(level, currentVertex);
+                VertexWithDistance commonAncestor = new VertexWithDistance(level, currentVertex);
                 commonAncestor.distance += currentVertexesPreviousLevel;
-                break;
+                if (commonAncestor.distance <= commonAncestorWithShortestDistance.distance) {
+                    commonAncestorWithShortestDistance = commonAncestor;
+                }
             }
             for (Integer neighborVertex : digraph.adj(currentVertex)) {
-                newNeighborQueue.add(neighborVertex);
+                if (!visited[neighborVertex]) {
+                    visited[neighborVertex] = true;
+                    newNeighborQueue.add(neighborVertex);
+                }
             }
             if (neighborQueue.isEmpty()) {
                 neighborQueue = newNeighborQueue;
@@ -235,8 +210,11 @@ public class SAP {
                 level++;
             }
         }
-
-        return commonAncestor;
+        if (commonAncestorWithShortestDistance.vertex == -1) {
+            commonAncestorWithShortestDistance.distance = -1;
+//            System.out.println("xxxxxxxx vertexV: " + v + " vertexW:" + w);
+        }
+        return commonAncestorWithShortestDistance;
     }
 
     private static class VertexWithDistance {

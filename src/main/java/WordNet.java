@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 public class WordNet {
 
@@ -70,8 +72,52 @@ public class WordNet {
                 digraph.addEdge(edgeFrom, Integer.parseInt(lineElements[i]));
             }
         }
-
+        checkForRootedDag(digraph);
         singleAncestorPath = new SAP(digraph);
+    }
+
+
+    private void checkForRootedDag(Digraph digraph) {
+        if (digraph.V() == 0) {
+            return;
+        }
+        Iterator[] neighborVerticesIterator = new Iterator[digraph.V()];
+        for (int i = 0; i < digraph.V(); i++) {
+            neighborVerticesIterator[i] = digraph.adj(i).iterator();
+        }
+
+        boolean[] onStack = new boolean[digraph.V()];
+        boolean[] isVisited = new boolean[digraph.V()];
+        Stack<Integer> stack = new Stack<>();
+
+        for (int i = 0; i < digraph.V(); i++) {
+            if (!isVisited[i]) {
+                stack.push(i);
+                isVisited[i] = true;
+                onStack[i] = true;
+
+                while (!stack.isEmpty()) {
+                    Integer currentVertex = stack.peek();
+                    if (neighborVerticesIterator[currentVertex].hasNext()) {
+                        Integer neighborVertex = (Integer) neighborVerticesIterator[currentVertex].next();
+
+                        if (onStack[neighborVertex]) {
+                            throw new IllegalArgumentException();
+                        }
+                        if (!isVisited[neighborVertex]) {
+                            stack.push(neighborVertex);
+                            isVisited[neighborVertex] = true;
+
+                            onStack[neighborVertex] = true;
+                        }
+                    } else {
+                        onStack[currentVertex] = false;
+                        stack.pop();
+                    }
+                }
+            }
+        }
+
     }
 
     public Iterable<String> nouns() {
