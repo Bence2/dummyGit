@@ -2,6 +2,7 @@ import edu.princeton.cs.algs4.Picture;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -11,12 +12,20 @@ public class SeamCarver {
 
     private Picture picture;
     private double[][] energyMatrix;
+    private boolean pictureChanged = false;
+    private boolean isTransposed = false;
 
     public static void main(String[] args) {
         Picture inputPicture = new Picture("/4x6.png");
         SeamCarver seamCarver = new SeamCarver(inputPicture);
         int[] shortestPath = seamCarver.findVerticalSeam();
         System.out.println(shortestPath);
+        int[][] proba = new int[3][1];
+        proba[0][0] = 1;
+        proba[1][0] = 5;
+        proba[2][0] = 9;
+        int[] transposedMatrix = seamCarver.findHorizontalSeam();
+        System.out.println(transposedMatrix);
     }
 
     public SeamCarver(Picture pictureParam) {
@@ -28,6 +37,10 @@ public class SeamCarver {
                 energyMatrix[x][y] = energy(x, y);
             }
         }
+    }
+
+    public Picture picture() {
+        return new Picture(this.picture);
     }
 
     public double energy(int x, int y) {
@@ -54,41 +67,32 @@ public class SeamCarver {
         return neighborRedDiffSquared + neighborGreenDiffSquared + neighborBlueDiffSquared;
     }
 
-    public int[] findVerticalSeam() {
-        // probléma: ha ezt többször hívják minden egyes alkalommal kiszámolom az egész kuplerájt attól függetlenül, h változott-e a picture
-        // ha a picture nem változik tök felesleges ugyanazt kiszámolni
+    private int[] findVerticalSeamHelper() {
         double[][] distanceTo = getInitializedDistanceToMatrix();
-        int[][] pathFrom = new int[picture.width()][picture.height()];
-        for (int x = 0; x < picture.width() - 1; x++) {
-            // az y - sor koordinátát lehet tudni, mert minden sorból kell választani egy oszlopot
+        int[][] pathFrom = new int[width()][height()];
+        for (int x = 0; x < width() - 1; x++) {
             int initialRowY = 0;
             Queue<EdgeXValue> edgesToRelax = new LinkedList<>();
             List<EdgeXValue> adjacentVertices = getAdjacentVertices(x, initialRowY);
             edgesToRelax.addAll(adjacentVertices);
-            // kell queue, mert nincs topological listám - itt a queue - ban topological sorrendben lennének az elemek
-            // ha leveszem a queueról az elemet, honnan tudom, h az melyik x koordinátához tartozott? az y-t ki lehet találni
-            // a pathnál elég csak az x-et tudni, h melyik oszlop, mert a sorok mindig csak egyesével változnak
             while (!edgesToRelax.isEmpty()) {
                 EdgeXValue edgeXValue = edgesToRelax.poll();
                 // currentRowY + 1 -> nextRow
                 double storedDistance = distanceTo[edgeXValue.xCurrent][edgeXValue.yPrev + 1];
-                double possibleDistance = distanceTo[edgeXValue.xPrev][edgeXValue.yPrev] + energy(edgeXValue.xCurrent, edgeXValue.yPrev + 1);
+                double possibleDistance = distanceTo[edgeXValue.xPrev][edgeXValue.yPrev] + energyMatrix[edgeXValue.xCurrent][edgeXValue.yPrev + 1];
                 if (possibleDistance < storedDistance) {
                     pathFrom[edgeXValue.xCurrent][edgeXValue.yPrev + 1] = edgeXValue.xPrev;
                     distanceTo[edgeXValue.xCurrent][edgeXValue.yPrev + 1] = possibleDistance;
                 }
                 edgesToRelax.addAll(getAdjacentVertices(edgeXValue.xCurrent, edgeXValue.yPrev + 1));
             }
-            // getAdjacentVertices - visszaad vmi iterable-t - azokat relaxalni
-            // kiindulási vertexet vehetem nullának - az adott vertexbe eljutni annyi súly, amennyi az adott vertex energyje
-            // energy matrixot csinálni ugyanabban a dimenzióban, mint a
         }
         // megnézni, h a distanceTo - ban melyik utolsó sorban levő érték a legkisebb
 
-        double shortestPathValue = distanceTo[0][picture.height() - 1];
+        double shortestPathValue = distanceTo[0][height() - 1];
         int shortestPathX = 0;
-        for (int x = 1; x < picture.width(); x++) {
-            double currentDistance = distanceTo[x][picture.height() - 1];
+        for (int x = 1; x < width(); x++) {
+            double currentDistance = distanceTo[x][height() - 1];
             if (shortestPathValue > currentDistance) {
                 shortestPathX = x;
                 shortestPathValue = currentDistance;
@@ -97,9 +101,41 @@ public class SeamCarver {
         return getShortestPath(shortestPathX, pathFrom);
     }
 
+    public int[] findVerticalSeam() {
+        if (this.isTransposed) {
+            this.energyMatrix = transposeMatrix(energyMatrix);
+        }
+        return findVerticalSeamHelper();
+        // probléma: ha ezt többször hívják minden egyes alkalommal kiszámolom az egész kuplerájt attól függetlenül, h változott-e a picture
+        // ha a picture nem változik tök felesleges ugyanazt kiszámolni
+
+    }
+
+    public int[] findHorizontalSeam() {
+        // elforgatni, majd find verticalSeam és visszaforgatni - v nem is kell rögtön visszaforgatni - kellene egy isTransposed bool
+        // picture.width(), picture.height()
+        // probléma ha egymás után hívják többször a findHorizontalSeam-et
+        if (!this.isTransposed) {
+            this.energyMatrix = transposeMatrix(energyMatrix);
+        }
+        // pr.: ha nem transposed - transposeolom -> meghívom a findVerticalSeam-et, ami visszaalakítja, hiszen a verticalSeam-hez nem transposeolt kell
+        return findVerticalSeamHelper();
+    }
+
+    private double[][] transposeMatrix(double[][] originalMatrix) {
+        double[][] transposedMatrix = new double[height()][width()];
+        for (int i = 0; i < height(); i++) {
+            for (int j = 0; j < width(); j++) {
+                transposedMatrix[i][j] = originalMatrix[j][i];
+            }
+        }
+        this.isTransposed = !this.isTransposed;
+        return transposedMatrix;
+    }
+
     private int[] getShortestPath(int lastShortestX, int[][] pathFrom) {
-        int[] shortestPath = new int[picture.height()];
-        for (int y = picture.height() - 1; y > 1; y--) {
+        int[] shortestPath = new int[height()];
+        for (int y = height() - 1; y > -1; y--) {
             shortestPath[y] = lastShortestX;
             lastShortestX = pathFrom[lastShortestX][y];
         }
@@ -107,12 +143,12 @@ public class SeamCarver {
     }
 
     private double[][] getInitializedDistanceToMatrix() {
-        double[][] distanceTo = new double[picture.width()][picture.height()];
-        for (int i = 0; i < picture.width(); i++) {
+        double[][] distanceTo = new double[width()][height()];
+        for (int i = 0; i < width(); i++) {
             distanceTo[i][0] = 0.0;
             distanceTo[i][1] = energy(i, 1);
             // TODO ezt a részt még végiggondolni
-            for (int y = 1; y < picture.height(); y++) {
+            for (int y = 1; y < height(); y++) {
                 distanceTo[i][y] = Double.POSITIVE_INFINITY;
             }
         }
@@ -121,12 +157,12 @@ public class SeamCarver {
 
     private List<EdgeXValue> getAdjacentVertices(int x, int y) {
         List<EdgeXValue> adjacentVertices = new ArrayList<>();
-        if (y < picture.height() - 1) {
+        if (y < height() - 1) {
             adjacentVertices.add(new EdgeXValue(x, y, x));
             if (x - 1 >= 0) {
                 adjacentVertices.add(new EdgeXValue(x, y, x - 1));
             }
-            if (x + 1 <= picture.width() - 1) {
+            if (x + 1 <= width() - 1) {
                 adjacentVertices.add(new EdgeXValue(x, y, x + 1));
             }
             if (adjacentVertices.size() < 2) {
@@ -138,11 +174,80 @@ public class SeamCarver {
     }
 
     public int width() {
-        return picture.width();
+        return this.isTransposed ? picture.height() : picture.width();
     }
 
     public int height() {
-        return picture.height();
+        return this.isTransposed ? picture.width() : picture.height();
+    }
+
+    public void removeVerticalSeam(int[] verticalSeam) {
+        // TODO ha törlök vertikálisan elemeket, akkor az energyMatrixet is meg kéne változtatnom
+        // ahol nem elég csak törölni, hanem újra kell számolni a törölt pixelek által érintett többi pixelt
+        // check, h a seam-ben levő elemszám egyezzen a picture.height-tal
+        if (verticalSeam.length != picture.height()) {
+            throw new IllegalArgumentException("The number of pixels to be removed has to equal the height!");
+        }
+        checkSeamArray(verticalSeam);
+
+        Picture newPicture = new Picture(this.picture.width() - 1, this.picture.height());
+
+        for (int y = 0; y < this.picture.height(); y++) {
+            boolean isBeforeDeletedPixel = true;
+            for (int x = 0; x < this.picture.width(); x++) {
+                if (!(verticalSeam[y] == x)) {
+                    if (isBeforeDeletedPixel) {
+                        Color color = this.picture.get(x, y);
+                        newPicture.set(x,y, color);
+                    } else {
+                        Color color = this.picture.get(x - 1, y);
+                        newPicture.set(x - 1, y, color);
+                    }
+                } else {
+                    isBeforeDeletedPixel = false;
+                }
+            }
+        }
+        this.picture = newPicture;
+        pictureChanged = true;
+    }
+
+    public void removeHorizontalSeam(int[] horizontalSeam) {
+        // horizontalSeam-ben minden oszlophoz kapcsolódóan van 1 y érték
+        // 0 1 2 3 4 5 - x
+        // 2 3 2 1 2 3 - y
+        if (horizontalSeam.length != picture.width()) {
+            throw new IllegalArgumentException("The number of pixels to be removed has to equal the height!");
+        }
+        checkSeamArray(horizontalSeam);
+        Picture newPicture = new Picture(this.picture.width(), this.picture.height() - 1);
+
+        for (int x = 0; x < this.picture.width(); x++) {
+            boolean isBeforeDeletedPixel = true;
+            for (int y = 0; y < this.picture.height(); y++) {
+                if (!(horizontalSeam[x] == y)) {
+                    if (isBeforeDeletedPixel) {
+                        Color color = this.picture.get(x, y);
+                        newPicture.set(x,y, color);
+                    } else {
+                        Color color = this.picture.get(x, y - 1);
+                        newPicture.set(x, y - 1, color);
+                    }
+                } else {
+                    isBeforeDeletedPixel = false;
+                }
+            }
+        }
+        this.picture = newPicture;
+        pictureChanged = true;
+    }
+
+    private void checkSeamArray(int[] seam) {
+        for (int i = 1; i < seam.length; i++) {
+            if (Math.abs(seam[i] - seam[i - 1]) > 1) {
+                throw new IllegalArgumentException("The seam to be deleted is invalid");
+            }
+        }
     }
 
     private static class EdgeXValue {
