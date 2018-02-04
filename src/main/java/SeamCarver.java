@@ -67,25 +67,56 @@ public class SeamCarver {
         return neighborRedDiffSquared + neighborGreenDiffSquared + neighborBlueDiffSquared;
     }
 
+    private int[] findVerticalSeamHelper2() {
+        double[][] distanceTo = getInitializedDistanceToMatrix();
+        int[][] pathFrom = new int[width()][height()];
+
+        // TODO topological sort
+        // tulajdonképp az is topologiai rendezés ha csak megyünk sorról sorra és minden egyes sorra kerül elemnek a szomszédját relaxáljuk
+        for (int y = 0; y < height(); y++) {
+            for (int x = 0; x < width(); x++) {
+                for (EdgeXValue edgeXValue : getAdjacentVertices(x, y)) {
+                    double storedDistance =  distanceTo[edgeXValue.xCurrent][y + 1];
+                    double possibleDistance = distanceTo[x][y] + energyMatrix[edgeXValue.xCurrent][y + 1];
+                    if (possibleDistance < storedDistance) {
+                        pathFrom[edgeXValue.xCurrent][y + 1] = edgeXValue.xPrev;
+                        distanceTo[edgeXValue.xCurrent][y + 1] = possibleDistance;
+                    }
+                }
+            }
+        }
+
+        double shortestPathValue = distanceTo[0][height() - 1];
+        int shortestPathX = 0;
+        for (int x = 1; x < width(); x++) {
+            double currentDistance = distanceTo[x][height() - 1];
+            if (shortestPathValue > currentDistance) {
+                shortestPathX = x;
+                shortestPathValue = currentDistance;
+            }
+        }
+        return getShortestPath(shortestPathX, pathFrom);
+    }
+
     private int[] findVerticalSeamHelper() {
         double[][] distanceTo = getInitializedDistanceToMatrix();
         int[][] pathFrom = new int[width()][height()];
+        Queue<EdgeXValue> edgesToRelax = new LinkedList<>();
         for (int x = 0; x < width() - 1; x++) {
-            int initialRowY = 0;
-            Queue<EdgeXValue> edgesToRelax = new LinkedList<>();
-            List<EdgeXValue> adjacentVertices = getAdjacentVertices(x, initialRowY);
-            edgesToRelax.addAll(adjacentVertices);
-            while (!edgesToRelax.isEmpty()) {
-                EdgeXValue edgeXValue = edgesToRelax.poll();
-                // currentRowY + 1 -> nextRow
-                double storedDistance = distanceTo[edgeXValue.xCurrent][edgeXValue.yPrev + 1];
-                double possibleDistance = distanceTo[edgeXValue.xPrev][edgeXValue.yPrev] + energyMatrix[edgeXValue.xCurrent][edgeXValue.yPrev + 1];
-                if (possibleDistance < storedDistance) {
-                    pathFrom[edgeXValue.xCurrent][edgeXValue.yPrev + 1] = edgeXValue.xPrev;
-                    distanceTo[edgeXValue.xCurrent][edgeXValue.yPrev + 1] = possibleDistance;
-                }
-                edgesToRelax.addAll(getAdjacentVertices(edgeXValue.xCurrent, edgeXValue.yPrev + 1));
+            edgesToRelax.add(new EdgeXValue(x, 0, x));
+        }
+        // TODO topological sort
+        // tulajdonképp az is topologiai rendezés ha csak megyünk sorról sorra és minden egyes sorra kerül elemnek a szomszédját relaxáljuk
+        while (!edgesToRelax.isEmpty()) {
+            EdgeXValue edgeXValue = edgesToRelax.poll();
+            // currentRowY + 1 -> nextRow
+            double storedDistance = distanceTo[edgeXValue.xCurrent][edgeXValue.yPrev + 1];
+            double possibleDistance = distanceTo[edgeXValue.xPrev][edgeXValue.yPrev] + energyMatrix[edgeXValue.xCurrent][edgeXValue.yPrev + 1];
+            if (possibleDistance < storedDistance) {
+                pathFrom[edgeXValue.xCurrent][edgeXValue.yPrev + 1] = edgeXValue.xPrev;
+                distanceTo[edgeXValue.xCurrent][edgeXValue.yPrev + 1] = possibleDistance;
             }
+            edgesToRelax.addAll(getAdjacentVertices(edgeXValue.xCurrent, edgeXValue.yPrev + 1));
         }
         // megnézni, h a distanceTo - ban melyik utolsó sorban levő érték a legkisebb
 
@@ -105,7 +136,7 @@ public class SeamCarver {
         if (this.isTransposed) {
             this.energyMatrix = transposeMatrix(energyMatrix);
         }
-        return findVerticalSeamHelper();
+        return findVerticalSeamHelper2();
         // probléma: ha ezt többször hívják minden egyes alkalommal kiszámolom az egész kuplerájt attól függetlenül, h változott-e a picture
         // ha a picture nem változik tök felesleges ugyanazt kiszámolni
 
@@ -119,7 +150,7 @@ public class SeamCarver {
             this.energyMatrix = transposeMatrix(energyMatrix);
         }
         // pr.: ha nem transposed - transposeolom -> meghívom a findVerticalSeam-et, ami visszaalakítja, hiszen a verticalSeam-hez nem transposeolt kell
-        return findVerticalSeamHelper();
+        return findVerticalSeamHelper2();
     }
 
     private double[][] transposeMatrix(double[][] originalMatrix) {
@@ -210,6 +241,33 @@ public class SeamCarver {
         }
         this.picture = newPicture;
         pictureChanged = true;
+        // TODO ezt tesztelni
+        this.energyMatrix = recomputeEnergyMatrix(verticalSeam);
+    }
+
+    private double[][] recomputeEnergyMatrix(int[] seam) {
+        // TODO tesztelni
+        double[][] newEnergyMatrix = new double[this.picture.width() - 1][this.picture.height()];
+        for (int y = 0; y < this.picture.height(); y++) {
+            boolean isBeforeDeletedSeam = true;
+            for (int x = 0; x < this.picture.width(); x++) {
+                if (seam[y] != x && seam[y] != x - 1 && seam[y] != x + 1) {
+                    if (isBeforeDeletedSeam) {
+                        newEnergyMatrix[x][y] = this.energyMatrix[x][y];
+                    } else {
+                        newEnergyMatrix[x - 1][y] = this.energyMatrix[y][x];
+                    }
+                } else if (seam[y] - 1 == x) {
+                    newEnergyMatrix[x][y] = energy(x, y);
+                } else if (seam[y] + 1 != x) {
+                    newEnergyMatrix[x - 1][y] = energy(x, y);
+                }
+                else {
+                    isBeforeDeletedSeam = false;
+                }
+            }
+        }
+        return newEnergyMatrix;
     }
 
     public void removeHorizontalSeam(int[] horizontalSeam) {
